@@ -1,0 +1,117 @@
+#!/usr/bin/python
+import argparse as ap
+import requests as r
+import pycurl
+import certifi
+from io import BytesIO
+from fmt import Formatting, Kind
+
+fmt = Formatting()
+
+ps = ap.ArgumentParser(
+    prog='findhoe',
+    description='Make a HTTP request to see if a person is degenerative of self to people',
+    epilog='You shall be endowed with grace, amen.'
+)
+
+ps.add_argument("link")
+ps.add_argument("-c", "--curl", action="store_true",
+                help="Use cURL to retrieve HTML")
+ps.add_argument("-w", "--wget", action="store_true",
+                help="Use wget to retrieve HTML")
+
+
+def url_is_tiktok(url: str) -> bool:
+    if "tiktok" in url:
+        return True
+    else:
+        return False
+
+
+def return_curled_url(url: str) -> str:
+    # taken from pycurl documentation
+    buffer = BytesIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL, url)
+    c.setopt(c.WRITEDATA, buffer)
+    c.setopt(c.CAINFO, certifi.where())
+    c.perform()
+    c.close()
+
+    body = buffer.getvalue()
+    return body.decode('iso-8859-1')
+
+
+def is_a_hoe(url: str, use_which: str) -> bool:
+    match use_which:
+        case "curl":
+            fmt.message(Kind.info, "using curl to retrieve url content")
+            contents = ""
+            try:
+                contents = return_curled_url(url)
+                fmt.message(Kind.ok, f"succesfully retrieved contents. content length is {
+                            len(contents)}")
+                if "onlyfans" in contents.casefold():
+                    return True
+                elif "exclusive" in contents.casefold():
+                    return True
+                else:
+                    return False
+            except Exception as e:
+                fmt.message(
+                    Kind.error, "an error occured trying to retrieve content")
+                fmt.message(Kind.error, e, True)
+        case "wget":
+            fmt.message(
+                Kind.error, "retrieval through wget is NOT IMPLEMENTED YET", True)
+        case "any":
+            fmt.message(Kind.info, "using requests to retrieve url content")
+            fmt.message(Kind.warning, "\n\n--- WARNING ---\nTHIS METHOD IS KNOWN TO NOT WORK AT ALL (lol) USE SOMETHING ELSE\n")
+            contents = ""
+            try:
+                j = r.get(url).text
+                fmt.message(Kind.ok, f"succesfully retrieved contents. content length is {
+                            len(contents)}")
+                if "onlyfans" in contents.casefold():
+                    return True
+                elif "exclusive" in contents.casefold():
+                    return True
+                else:
+                    return False
+            except Exception as e:
+                fmt.message(
+                    Kind.error, "an error occured trying to retrieve content")
+                fmt.message(Kind.error, e, True)
+
+
+if __name__ == '__main__':
+    args = ps.parse_args()
+
+    fmt.message(
+        Kind.warning, "THIS IS NOT FINISHED YET. EXPECT BUGS")
+    fmt.message(
+        Kind.warning, "for now, URLs will only be checked through basic Python if statements.")
+    fmt.message(Kind.warning, "This is subject to change.")
+
+    if url_is_tiktok(args.link):
+        fmt.message(
+            Kind.error, "This is not a linktree link. Only linktree urls are supported.")
+        fmt.message(
+            Kind.error, "Going through tiktok links to find a link in bio is not implemented yet.", True)
+
+    if args.curl:
+        if is_a_hoe(args.link, "curl"):
+            print("you fell in love with a whore.")
+        else:
+            print("she is clean, amen.")
+    elif args.wget:
+        fmt.message(Kind.error, "NOT IMPLEMENTED YET", True)
+    elif not args.curl and not args.wget:
+        if is_a_hoe(args.link, "any"):
+            print("you fell in love with a whore.")
+        else:
+            print("she is clean, amen.")
+
+    if args.curl is True and args.wget is True:
+        fmt.message(Kind.error, "Those two cannot be true at the same time.")
+        fmt.message(Kind.error, ps.print_help(), True)

@@ -1,0 +1,89 @@
+#!/usr/bin/python
+
+# TODO: REFACTOR THIS CODE TO HAVE FUNCTIONS
+
+from sys import argv, exit, platform
+from fmt import Formatting, Kind
+from distutils.dir_util import copy_tree
+import shutil
+import os
+
+fmt = Formatting()
+
+if __name__ == '__main__':
+    fmt.message(Kind.info, "starting installation")
+    pathdir = ""
+    match platform:
+        case "linux":
+            fmt.message(Kind.info, f"operating system is {
+                        platform} or {platform} based")
+
+            try:
+                fmt.message(Kind.info, "querying path using `os.popen()`...")
+                out = os.popen("echo $PATH").read()
+                pathdir = out
+            except Exception as e:
+                fmt.message(
+                    Kind.error, "an error occured while querying path.")
+                fmt.message(Kind.error, "consult the traceback below:\n")
+                fmt.message(Kind.error, e, True)
+
+            fmt.message(Kind.ok, f"$PATH = {pathdir}")
+            match argv[1]:
+                case "install=personal":
+                    fmt.message(
+                        Kind.info, "installing for the current user only..")
+                    installpath = ""
+                    try:
+                        pathdirs = pathdir.split(":")
+                        pathlen = len(pathdirs)
+
+                        fmt.message(
+                            Kind.info, f"enumerating directories in $PATH: {pathlen}")
+                        fmt.message(
+                            Kind.info, "traversing trough directories (way of finding perfect dir. 1/2)")
+
+                        i = 0
+                        try:
+                            for directories in pathdirs:
+                                i += 1
+                                if i > pathlen:
+                                    break
+
+                                if pathdirs[i] == "/usr/local/bin":
+                                    fmt.message(
+                                        Kind.ok, f"{pathdirs[i]} found at index {i}")
+                                    installpath = pathdirs[i]
+                                    break
+                        except Exception as e:
+                            fmt.message(
+                                Kind.error, f"couldn't get across $PATH, using hardcoded path")
+                            installpath = "/usr/local/bin"
+
+                    except Exception as e:
+                        fmt.message(
+                            Kind.error, "an error occured while trying to get to know more about the $PATH")
+                        fmt.message(Kind.error, "---- TRACEBACK ----:")
+                        fmt.message(Kind.error, e, True)
+
+                    try:
+                        fmt.message(Kind.info, "setting permissions...")
+                        if os.system("chmod -R +x bin/*") > 0:
+                            fmt.message(
+                                Kind.error, "cannot set permissions. not installed", True)
+                        shutil.copy("fmt.py", installpath)
+                        copy_tree("bin/", installpath)
+                        fmt.message(
+                            Kind.ok, f"installed findhoe in `{installpath}`")
+                    except Exception as e:
+                        print(e)
+                case "install=system":
+                    fmt.message(Kind.error, "NOT IMPLEMENTED YET", True)
+                case _:
+                    fmt.message(Kind.error, "Invalid argument.")
+                    fmt.message(
+                        Kind.info, "usage: ./install install=<personal || system>")
+                    exit(1)
+
+        case _:
+            fmt.message(Kind.error, f"{platform}: NOT IMPLEMENTED YET", True)
